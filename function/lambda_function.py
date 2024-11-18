@@ -82,7 +82,7 @@ THREAD_ID = create_thread()
 
 
 def create_reply_to_tweet(tweet_id, text, testing=True):
-    create_message(THREAD_ID, f'Respond to this as if it were a twitter reply to your post "{text}"')
+    create_message(THREAD_ID, f'Respond to this "{text}"')
 
     run = create_run(THREAD_ID, OPENAI_ASST_ID)
     while run["status"] != 'completed':
@@ -142,4 +142,4 @@ def lambda_handler(event, context):
         create_reply_to_tweet(mention.id, mention.text, testing=testing)
 
     # Create tweet on timeline
-    create_tweet_on_timeline(testing=testing)
+    # create_tweet_on_timeline(testing=testing)
