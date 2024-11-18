@@ -103,7 +103,7 @@ def create_reply_to_tweet(tweet_id, text, testing=True):
 
 
 def create_tweet_on_timeline(testing=True):
-    create_message(THREAD_ID, f"Generate a tweet that embodies your values with regards to your knowledge and database, with occasional references to your token, $HOL. Make sure to not use any emojis")
+    create_message(THREAD_ID, f"Give the world a though")
     run = create_run(THREAD_ID, OPENAI_ASST_ID)
     while run["status"] != 'completed':
         # wait for 3 seconds
