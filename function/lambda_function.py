@@ -82,7 +82,8 @@ THREAD_ID = create_thread()
 
 
 def create_reply_to_tweet(tweet_id, text, testing=True):
-    create_message(THREAD_ID, f'Respond to this "{text}"')
+    random_length = random.randint(90, 400)
+    create_message(THREAD_ID, f'Respond to this in around {random_length} characters: "{text}"')
 
     run = create_run(THREAD_ID, OPENAI_ASST_ID)
     while run["status"] != 'completed':
@@ -93,6 +94,8 @@ def create_reply_to_tweet(tweet_id, text, testing=True):
     messages = make_openai_request("GET", f"threads/{THREAD_ID}/messages")
     try:
         reply = messages["data"][0]["content"][0]["text"]["value"]
+        if reply[0] == '"':
+            reply = reply[1:-1]
         if testing:
             print(reply)
         else:
