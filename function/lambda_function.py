@@ -10,17 +10,23 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import random
 
+OPENAI_API_KEY = secrets.get("OPENAI_API_KEY") if secrets else os.environ.get('OPENAI_API_KEY')
+OPENAI_ASST_ID = secrets.get("OPENAI_ASSISTANT_ID") if secrets else os.environ.get('OPENAI_ASSISTANT_ID')
+
+BOT_NAME = "mcafee-bot"
 mongo_uri = secrets.get("MONGO_URI") if secrets else os.environ.get('MONGO_URI')
 pymongo_client = MongoClient(mongo_uri, server_api=ServerApi('1'))
-
 try:
     pymongo_client.admin.command('ping')
     print("Pinged your deployment. You successfully connected to MongoDB!")
 except Exception as e:
     print(e)
 
-OPENAI_API_KEY = secrets.get("OPENAI_API_KEY") if secrets else os.environ.get('OPENAI_API_KEY')
-OPENAI_ASST_ID = secrets.get("OPENAI_ASSISTANT_ID") if secrets else os.environ.get('OPENAI_ASSISTANT_ID')
+# Get the bot config
+db = pymongo_client.get_database("TWITTER_BOTS")
+config_collection = db.get_collection("bot_config")
+bot_config = config_collection.find_one({"name": BOT_NAME})
+tweet_history_collection = db.get_collection("tweet_history")
 
 
 def make_openai_request(method, endpoint, data=None):
@@ -100,7 +106,14 @@ def create_reply_to_tweet(tweet_id, text, testing=True):
             print(reply)
         else:
             post_tweet(reply, tweet_id)
-
+            tweet_history_collection.insert_one(
+                {
+                    "tweet_id": tweet_id,
+                    "tweet_text": text,
+                    "reply": reply,
+                    "bot_id": bot_config["_id"]
+                 }
+            )
     except:
         print("Error in creating reply")
 
@@ -128,8 +141,17 @@ def create_tweet_on_timeline(testing=True):
 def get_mentions():
     mentions = tweepy_client.get_users_mentions(me.id, user_auth=True, expansions="author_id",
                                                 tweet_fields="public_metrics,conversation_id", max_results=25)
-    # sample 3 random mentions
-    random_mentions = random.sample(mentions.data, 3)
+    possible_mentions = []
+
+    # Check if the bot has already replied to the tweet
+    for mention in mentions.data:
+        if not tweet_history_collection.find_one({"tweet_id": mention.id, "bot_id": bot_config["_id"]}):
+            possible_mentions.append(mention)
+
+    # sample mentions
+    ideal_sample_size = 3
+    sample_size = min(ideal_sample_size, len(possible_mentions))
+    random_mentions = random.sample(possible_mentions, sample_size)
     return random_mentions
 
 
